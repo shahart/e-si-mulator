@@ -1,0 +1,13 @@
+{
+  "name": "Octahedron surface area",
+  "steps": [
+    "3",
+    "multiply",
+    "2",
+    "sqrt",
+    "multiply",
+    "x",
+    "square",
+    "equals"
+  ]
+}

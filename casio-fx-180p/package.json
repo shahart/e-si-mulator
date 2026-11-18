@@ -1,0 +1,13 @@
+{
+  "name": "casio-fx-180p-emulator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test",
+    "start": "python3 -m http.server 8000"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

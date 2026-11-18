@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e8e4da">
+  <title>Casio fx-180P — pocket program calculator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="intro">
+      <div class="eyebrow">A pocket of computing history</div>
+      <h1>Casio <span>fx-180P</span></h1>
+      <p>38 steps. Two program areas. One very good reason to keep a little program alive.</p>
+    </header>
+
+    <section class="calculator" aria-label="Casio fx-180P calculator emulator">
+      <div class="brand"><b>CASIO</b><span>fx-180P</span><small>PROGRAMMABLE</small></div>
+      <div class="solar"><i></i><i></i><i></i><i></i></div>
+      <div class="screen-wrap">
+        <div class="indicators"><span id="mode-indicator">RUN</span><span id="bank-indicator">P1</span><span id="angle-indicator">DEG</span><span id="line-indicator"></span></div>
+        <output id="display" class="display" aria-live="polite">0.</output>
+      </div>
+      <div class="memory-row"><span>PROGRAM MEMORY</span><span id="memory-count">0 / 38 STEPS</span></div>
+      <div class="keypad" id="keypad" aria-label="Calculator keys"></div>
+      <div class="calculator-foot"><span>CASIO COMPUTER CO., LTD.</span><span>JAPAN</span></div>
+    </section>
+
+    <aside class="side-panel">
+      <div class="panel-head"><div><div class="eyebrow">Your program</div><h2>Memory view</h2></div><button id="clear-program" class="text-button" type="button">Clear</button></div>
+      <div class="file-actions">
+        <label class="upload-button" for="program-file">Upload program</label>
+        <input id="program-file" class="visually-hidden" type="file" accept=".json,application/json">
+        <a class="download-link" href="demo-program.json" download>Get example file</a>
+      </div>
+      <p id="file-status" class="file-status" role="status" aria-live="polite">Upload a JSON program into the selected area.</p>
+      <div class="bank-tabs" role="tablist" aria-label="Program area">
+        <button class="bank active" data-bank="P1" role="tab" aria-selected="true">P1 <small>AREA 1</small></button>
+        <button class="bank" data-bank="P2" role="tab" aria-selected="false">P2 <small>AREA 2</small></button>
+      </div>
+      <div class="program-list" id="program-list"><div class="empty-state">Your keystrokes will appear here.<br><span>Press <kbd>MODE</kbd> then <kbd>0</kbd> to record.</span></div></div>
+      <div class="help-card"><span class="help-icon">↳</span><div><b>How it works</b><p>In LRN mode, every calculation key records one step. Switch back to RUN, enter a value, then press <kbd>P1</kbd> or <kbd> P2 </kbd> to replay it.</p></div></div>
+      <div class="demo-card"><div><div class="eyebrow">A tiny example</div><b>Octahedron surface area</b><p>Record <code>3 × √2 × x²</code> and run it with any edge length.</p></div><button id="load-demo" class="demo-button" type="button">Load demo <span>↗</span></button></div>
+      <p class="note">This emulator models the fx-180P's immediate-execution workflow and 38-step program memory. It is designed for showing and replaying programs; some advanced machine-specific behavior may differ.</p>
+    </aside>
+    <footer class="page-foot">A small tribute to the programs we keep.</footer>
+  </main>
+  <script type="module" src="./dist/main.js"></script>
+</body>
+</html>
