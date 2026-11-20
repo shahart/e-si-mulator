@@ -27,22 +27,43 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install dependencies
+      - name: Install fx-180P dependencies
         run: npm ci
+        working-directory: casio-fx-180p
 
-      - name: Build and test
+      - name: Build and test fx-180P
         run: npm test
+        working-directory: casio-fx-180p
+
+      - name: Install fx-9700GE dependencies
+        run: npm ci
+        working-directory: casio-fx-9700ge
+
+      - name: Build and test fx-9700GE
+        run: npm test
+        working-directory: casio-fx-9700ge
 
       - name: Prepare static site
         run: |
-          mkdir -p _site
-          cp index.html style.css demo-program.json _site/
-          cp -R dist _site/dist
+          mkdir -p _site/casio-fx-180p _site/casio-fx-9700ge
+          cp casio-fx-180p/index.html casio-fx-180p/style.css casio-fx-180p/demo-program.json _site/casio-fx-180p/
+          cp -R casio-fx-180p/dist _site/casio-fx-180p/dist
+        working-directory: .
+
+      - name: Add fx-9700GE app to static site
+        run: |
+          cp casio-fx-9700ge/index.html casio-fx-9700ge/style.css casio-fx-9700ge/demo-program.json _site/casio-fx-9700ge/
+          cp -R casio-fx-9700ge/dist _site/casio-fx-9700ge/dist
+        working-directory: .
+
+      - name: Add calculator landing page
+        run: cp index.html _site/index.html
+        working-directory: .
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: casio-fx-180p/_site
+          path: _site
 
   deploy:
     if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch

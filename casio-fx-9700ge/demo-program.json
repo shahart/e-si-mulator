@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "programs": [
+    {
+      "name": "SQUARE",
+      "source": [
+        "?\"X=\"→A", 
+        "A^2→B", 
+        "Disp B"
+      ]
+    },
+    {
+      "name": "QUADRAT",
+      "source": [
+        "?\"A=\"→A", 
+        "?\"B=\"→B", 
+        "?\"C=\"→C", 
+        "(-B+SQRT(B^2-4*A*C))/(2*A)→X", 
+        "Disp X"
+      ]
+    }
+  ]
+}

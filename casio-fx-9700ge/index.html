@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#d7d3c8">
+    <title>Casio fx-9700GE — graphing calculator simulator</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="layout">
+      <header class="intro">
+        <a class="back" href="../">← All calculators</a>
+        <p class="eyebrow">CASIO POWER GRAPHIC • 1994</p>
+        <h1>fx-9700GE <span>simulator</span></h1>
+        <p>
+          A browser-based tribute to the classic graphing calculator. Write and run small programs,
+          then import or export them as JSON.
+        </p>
+      </header>
+
+      <section class="calculator" aria-label="Casio fx-9700GE simulator">
+        <div class="shell-top">
+          <strong>CASIO</strong>
+          <span>fx-9700GE</span>
+          <span class="model-line">POWER GRAPHIC</span>
+        </div>
+
+        <div class="screen-frame">
+          <div class="screen-top">
+            <span id="mode-indicator">RUN</span>
+            <span id="program-count">1 PROGRAM</span>
+          </div>
+          <output id="display" class="screen" aria-live="polite">
+            <span>Ready</span>
+          </output>
+          <canvas
+            class="graph-screen"
+            width="128"
+            height="64"
+            aria-label="128 by 64 pixel graph display"
+          ></canvas>
+        </div>
+
+        <div class="memory-strip">
+          <span>PROGRAM MEMORY</span>
+          <span id="memory-count">0 / 24,576 BYTES</span>
+        </div>
+        <div id="keypad" class="keypad" aria-label="Calculator keypad"></div>
+        <div class="shell-foot">
+          <span>CASIO COMPUTER CO., LTD.</span>
+          <span>JAPAN</span>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="Program workspace">
+        <div class="workspace-heading">
+          <div>
+            <p class="eyebrow">PROGRAM MODE</p>
+            <h2>Program memory</h2>
+          </div>
+          <button id="mode-button" class="outline" type="button">RUN / PRGM</button>
+        </div>
+
+        <div class="actions">
+          <label class="button primary" for="upload">Import JSON</label>
+          <input
+            id="upload"
+            class="visually-hidden"
+            type="file"
+            accept=".json,application/json"
+          >
+          <button id="export-programs" class="button" type="button">Export JSON</button>
+          <button id="new-program" class="button" type="button">New program</button>
+        </div>
+
+        <p id="file-status" class="status" role="status" aria-live="polite">
+          Edit a program below or import a JSON file.
+        </p>
+
+        <div class="program-area">
+          <nav id="program-list" class="program-list" aria-label="Saved programs"></nav>
+          <div class="editor">
+            <label for="program-name">Program name</label>
+            <input id="program-name" maxlength="8" value="SQUARE" autocomplete="off">
+
+            <label for="program-source">
+              Program source <span>One command per line</span>
+            </label>
+            <textarea
+              id="program-source"
+              spellcheck="false"
+              autocapitalize="off"
+              autocomplete="off"
+            ></textarea>
+
+            <div class="editor-actions">
+              <button id="save-program" class="button" type="button">Save changes</button>
+              <button id="delete-program" class="text-button" type="button">Delete program</button>
+              <button id="run-program" class="button primary" type="button">▶ Run program</button>
+            </div>
+          </div>
+        </div>
+
+        <details class="reference">
+          <summary>Supported program commands</summary>
+          <p>
+            Arithmetic and variables A–Z; assignment with <code>→</code>; input such as
+            <code>?"X="→A</code>; <code>Disp</code>, quoted text, <code>Lbl</code>,
+            <code>Goto</code>, <code>If condition⇒Goto label</code>, <code>If … Then</code>/<code>IfEnd</code>,
+            <code>Prog</code>, <code>Return</code>, <code>Stop</code>, and <code>Cls</code>.
+            Functions include SIN, COS, TAN, SQRT, ABS, LOG, LN, and EXP. Use <code>^</code> for powers.
+          </p>
+          <p>
+            Example: <code>?"X="→A</code> then <code>A^2→B</code> then <code>Disp B</code>.
+            Program memory is approximated by UTF-8 source size, with a shared 24 KiB limit.
+          </p>
+        </details>
+
+        <p class="disclaimer">
+          This is an independent educational simulator. It does not reproduce every fx-9700GE
+          feature or guarantee identical results to original hardware.
+        </p>
+      </section>
+
+      <footer>
+        Separate from the <a href="../casio-fx-180p/">fx-180P simulator</a>.
+      </footer>
+    </main>
+    <script type="module" src="./dist/main.js"></script>
+  </body>
+</html>

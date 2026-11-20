@@ -11,3 +11,8 @@ https://www.manualslib.com/manual/3778126/Casio-Fx-180p.html
 
 I made couple of tiny programs for it 35 years ago.
 Now let's try to find them in the garage 🤓
+
+Also, got the FX-9700ge, which got no emulator at all ..
+(note there's a free online emulator to another model 9750GIII inside https://ClassPad.net)
+
+<img src="casio-fx-9700ge/fx9700ge.jpg" >
