@@ -1,7 +1,7 @@
 import { Calculator } from './calculator.js';
 import { keys } from './keys.js';
 import { readProgramFile } from './program-file.js';
-import type { Action, ProgramBank, ProgramStep } from './types.js';
+import type { Action, KeyAction, ProgramBank, ProgramStep } from './types.js';
 
 const calculator = new Calculator();
 const keyLabels: Record<string, string> = {
@@ -83,6 +83,12 @@ function render(): void {
     ? String(state.programs[state.bank].length + 1).padStart(2, '0')
     : '';
   byId<HTMLSpanElement>('memory-count').textContent = `${calculator.totalSteps} / 38 STEPS`;
+  const status = document.getElementById('execution-status');
+  if (status) status.textContent = state.execution === 'input' ? 'INPUT — enter value, press EXE'
+    : state.execution === 'halt' ? 'PAUSED — press EXE to continue'
+      : state.execution === 'output' ? 'OUTPUT — press EXE to continue' : state.execution.toUpperCase();
+  const memory = document.getElementById('register-view');
+  if (memory) memory.textContent = `M: ${state.m ?? '—'}   K1–K6: ${state.memories.map((v) => v ?? '—').join(' · ')}`;
 
   document
     .querySelector('[data-action="shift"]')
@@ -117,7 +123,7 @@ function renderKeypad(): void {
   });
 }
 
-function pressKey(action: Action): void {
+function pressKey(action: KeyAction): void {
   calculator.press(action);
   render();
 
@@ -206,7 +212,6 @@ byId<HTMLInputElement>('program-file').addEventListener('change', (event) => {
 
 byId<HTMLButtonElement>('load-demo').addEventListener('click', () => {
   calculator.loadProgram('P1', demoSteps);
-  calculator.state.inputX = true;
   calculator.state.display = 10;
   calculator.state.fresh = false;
   render();

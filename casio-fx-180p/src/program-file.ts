@@ -18,6 +18,9 @@ const importableSteps = new Set<ProgramStep>([
   'pi',
   'negate',
   'x',
+  'min', 'mr', 'halt', 'input', 'return', 'loopPositive', 'loopLessEqual',
+  'kin1','kin2','kin3','kin4','kin5','kin6',
+  'kout1','kout2','kout3','kout4','kout5','kout6',
 ]);
 
 export async function readProgramFile(file: File): Promise<ImportedProgram> {

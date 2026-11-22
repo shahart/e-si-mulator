@@ -464,3 +464,5 @@ body {
   white-space: nowrap;
   border: 0
 }
+.execution-status, .register-view { margin: .35rem 0; color: #52635c; font-size: .75rem; letter-spacing: .04em; }
+.register-view { font-family: ui-monospace, monospace; letter-spacing: 0; }

@@ -69,3 +69,91 @@ test('rejects program files larger than the import limit', async () => {
 
   await assert.rejects(readProgramFile(file), /too large/);
 });
+
+test('K IN and K OUT select and recall each constant register', () => {
+  const calculator = new Calculator();
+  calculator.press('4');
+  calculator.press('2');
+  calculator.press('kin');
+  calculator.press('3');
+
+  assert.equal(calculator.state.memories[2], 42);
+  calculator.press('clear');
+  calculator.press('kout');
+  calculator.press('3');
+  assert.equal(calculator.state.display, 42);
+});
+
+test('M IN replaces independent memory and M READ recalls it', () => {
+  const calculator = new Calculator();
+  calculator.press('1');
+  calculator.press('2');
+  calculator.press('min');
+  calculator.press('clear');
+  calculator.press('9');
+  calculator.press('min');
+  assert.equal(calculator.state.m, 9);
+  calculator.press('clear');
+  calculator.press('mr');
+  assert.equal(calculator.state.display, 9);
+});
+
+test('program input pauses for a value and resumes at EXE', () => {
+  const calculator = new Calculator();
+  calculator.loadProgram('P1', ['input', 'multiply', '2', 'equals']);
+  calculator.press('runP1');
+  assert.equal(calculator.state.execution, 'input');
+  calculator.press('4');
+  calculator.press('execute');
+  assert.equal(calculator.state.display, 8);
+  assert.equal(calculator.state.execution, 'finished');
+});
+
+test('K OUT and HLT pause program execution until EXE', () => {
+  const calculator = new Calculator();
+  calculator.press('4');
+  calculator.press('kin');
+  calculator.press('2');
+  calculator.loadProgram('P1', ['kout2', '7', 'halt', '9']);
+  calculator.press('runP1');
+
+  assert.equal(calculator.state.display, 4);
+  assert.equal(calculator.state.execution, 'output');
+  calculator.press('execute');
+  assert.equal(calculator.state.display, '7');
+  assert.equal(calculator.state.execution, 'halt');
+  calculator.press('execute');
+  assert.equal(calculator.state.display, '9');
+  assert.equal(calculator.state.execution, 'finished');
+});
+
+test('conditional return falls through when its condition is false', () => {
+  const calculator = new Calculator();
+  calculator.state.m = 5;
+  calculator.press('6');
+  calculator.loadProgram('P1', ['loopLessEqual', 'square']);
+  calculator.press('runP1');
+  assert.equal(calculator.state.display, 36);
+  assert.equal(calculator.state.execution, 'finished');
+});
+
+test('conditional and unconditional returns stop runaway programs at the instruction limit', () => {
+  const calculator = new Calculator();
+  calculator.state.m = 5;
+  calculator.loadProgram('P1', ['1', 'square', 'loopLessEqual']);
+  calculator.press('runP1');
+  assert.equal(calculator.state.execution, 'error');
+  assert.equal(calculator.state.error, 'PROGRAM LIMIT');
+
+  calculator.loadProgram('P1', ['return']);
+  calculator.press('runP1');
+  assert.equal(calculator.state.execution, 'error');
+  assert.equal(calculator.state.error, 'PROGRAM LIMIT');
+});
+
+test('program import accepts memory and control-flow commands', async () => {
+  const steps = ['kin3', 'min', 'input', 'kout3', 'loopPositive', 'return', 'halt'];
+  const file = new File([JSON.stringify({ name: 'Memory loop', steps })], 'memory-loop.json');
+  const program = await readProgramFile(file);
+  assert.deepEqual(program.steps, steps);
+});

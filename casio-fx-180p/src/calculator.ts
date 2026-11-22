@@ -1,303 +1,112 @@
-import type {
-  Action,
-  CalculatorMode,
-  ProgramBank,
-  ProgramStep,
-} from './types.js';
+import type { Action, CalculatorMode, KeyAction, ProgramBank, ProgramCommand, ProgramStep } from './types.js';
 
-type PressSource = 'normal' | 'recording' | 'replay';
 type Operation = 'add' | 'subtract' | 'multiply' | 'divide';
-type InverseFunction = 'asin' | 'acos' | 'atan';
+export type ExecutionStatus = 'idle' | 'running' | 'input' | 'output' | 'halt' | 'finished' | 'error';
+const LIMIT = 10000;
+const isCommand = (a: KeyAction): a is ProgramCommand => /^(kin|kout)[1-6]$/.test(a)
+  || ['min','mr','halt','input','return','loopPositive','loopLessEqual'].includes(a);
 
 export interface CalculatorState {
-  display: number | string;
-  accumulator: number | null;
-  pending: Operation | null;
-  fresh: boolean;
-  mode: CalculatorMode;
-  bank: ProgramBank;
-  angle: 'DEG' | 'RAD';
-  shift: boolean;
-  programs: Record<ProgramBank, ProgramStep[]>;
-  inputX: boolean;
-  inputValue: number;
-  error: string;
+  display: number | string; accumulator: number | null; pending: Operation | null; fresh: boolean;
+  mode: CalculatorMode; bank: ProgramBank; angle: 'DEG' | 'RAD'; shift: boolean;
+  programs: Record<ProgramBank, ProgramStep[]>; inputValue: number; error: string;
+  memories: Array<number | null>; m: number | null; execution: ExecutionStatus;
+  pc: number; waitingForInput: boolean; sequence: 'kin' | 'kout' | null;
 }
-
-const MAX_PROGRAM_STEPS = 38;
 
 export class Calculator {
   readonly state: CalculatorState = {
-    display: '0',
-    accumulator: null,
-    pending: null,
-    fresh: true,
-    mode: 'RUN',
-    bank: 'P1',
-    angle: 'DEG',
-    shift: false,
-    programs: { P1: [], P2: [] },
-    inputX: false,
-    inputValue: 0,
-    error: '',
+    display:'0', accumulator:null, pending:null, fresh:true, mode:'RUN', bank:'P1', angle:'DEG', shift:false,
+    programs:{P1:[],P2:[]}, inputValue:0, error:'', memories:Array(6).fill(null), m:null,
+    execution:'idle', pc:0, waitingForInput:false, sequence:null,
   };
+  get totalSteps(): number { return this.state.programs.P1.length + this.state.programs.P2.length; }
+  get availableSteps(): number { return 38 - this.state.programs[this.state.bank === 'P1' ? 'P2' : 'P1'].length; }
 
-  get totalSteps(): number {
-    return this.state.programs.P1.length + this.state.programs.P2.length;
-  }
-
-  get availableSteps(): number {
-    return MAX_PROGRAM_STEPS - this.state.programs[this.otherBank].length;
-  }
-
-  private get otherBank(): ProgramBank {
-    return this.state.bank === 'P1' ? 'P2' : 'P1';
-  }
-
-  press(action: Action, source: PressSource = 'normal'): void {
-    const state = this.state;
-    state.error = '';
-
-    if (action === 'shift') {
-      state.shift = !state.shift;
+  press(action: KeyAction): void {
+    const s=this.state; s.error='';
+    if (s.sequence) {
+      const seq=s.sequence; s.sequence=null;
+      if (/^[1-6]$/.test(action)) { this.press(`${seq}${action}` as ProgramCommand); return; }
+      this.press(action); return;
+    }
+    if(action==='shift'){s.shift=!s.shift;return;}
+    if(action==='mode'){s.mode=s.mode==='RUN'?'MODE':'RUN';return;}
+    if(s.mode==='MODE'&&action==='0'){s.mode='LRN';s.bank='P1';s.programs={P1:[],P2:[]};return;}
+    if(s.mode==='LRN'&&action==='runP1'){s.bank='P1';return;}
+    if(s.mode==='LRN'&&action==='runP2'){s.bank='P2';return;}
+    if(s.mode==='LRN'&&action==='clear'){s.programs[s.bank]=[];return;}
+    if(action==='runP1'||action==='runP2'){this.start(action==='runP1'?'P1':'P2');return;}
+    if(action==='kin'||action==='kout'){s.sequence=action;return;}
+    if(action==='execute'){
+      if(s.execution==='input'){s.inputValue=this.value();s.waitingForInput=false;s.execution='running';this.resume();}
+      else if(['halt','output'].includes(s.execution)){s.execution='running';this.resume();}
       return;
     }
-
-    if (action === 'mode') {
-      state.mode = state.mode === 'RUN' ? 'MODE' : 'RUN';
-      return;
-    }
-
-    if (state.mode === 'MODE' && action === '0') {
-      state.mode = 'LRN';
-      state.bank = 'P1';
-      state.programs = { P1: [], P2: [] };
-      state.accumulator = null;
-      state.display = '0';
-      return;
-    }
-
-    if (state.mode === 'LRN' && action === 'runP1') {
-      state.bank = 'P1';
-      return;
-    }
-
-    if (state.mode === 'LRN' && action === 'runP2') {
-      state.bank = 'P2';
-      return;
-    }
-
-    if (state.mode === 'LRN' && action === 'clear') {
-      state.programs[state.bank] = [];
-      return;
-    }
-
-    if (action === 'runP1' || action === 'runP2') {
-      this.runProgram(action === 'runP1' ? 'P1' : 'P2');
-      return;
-    }
-
-    if (action === 'clear') {
-      state.display = '0';
-      state.accumulator = null;
-      state.pending = null;
-      state.fresh = true;
-      return;
-    }
-
-    if (state.mode === 'LRN' && source === 'normal') {
-      if (this.totalSteps >= MAX_PROGRAM_STEPS) {
-        state.error = 'MEM FULL';
+    if(s.mode==='LRN'){
+      if(this.totalSteps>=38){s.error='MEM FULL';return;}
+      if(action==='halt'||action==='input'||isCommand(action)){
+        s.programs[s.bank].push(action as ProgramStep);
         return;
       }
-
-      if (action === 'execute') return;
-
-      state.programs[state.bank].push(action as ProgramStep);
-      source = 'recording';
+      s.programs[s.bank].push(action as ProgramStep);
     }
-
-    this.enterDigitOrDecimal(action);
-    this.enterOperation(action);
-    this.enterSpecialKey(action, source);
-  }
-
-  selectBank(bank: ProgramBank): void {
-    this.state.bank = bank;
-  }
-
-  clearProgram(bank: ProgramBank = this.state.bank): void {
-    this.state.programs[bank] = [];
-  }
-
-  loadProgram(bank: ProgramBank, steps: ProgramStep[]): void {
-    this.state.programs[bank] = [...steps];
-    this.state.bank = bank;
-    this.state.mode = 'RUN';
-  }
-
-  private runProgram(bank: ProgramBank): void {
-    const state = this.state;
-    state.bank = bank;
-    state.mode = 'RUN';
-    state.inputValue = this.currentValue();
-    state.inputX = true;
-    state.fresh = true;
-
-    for (const step of state.programs[bank]) {
-      this.press(step, 'replay');
-    }
-  }
-
-  private currentValue(): number {
-    return Number(this.state.display) || 0;
-  }
-
-  private setDisplay(value: number): void {
-    this.state.display = Number.isFinite(value) ? value : 'Math Error';
-    this.state.fresh = true;
-  }
-
-  private stepCalculation(operation: Operation, left: number, right: number): number {
-    switch (operation) {
-      case 'add':
-        return left + right;
-      case 'subtract':
-        return left - right;
-      case 'multiply':
-        return left * right;
-      case 'divide':
-        return left / right;
-    }
-  }
-
-  private enterDigitOrDecimal(action: Action): void {
-    const state = this.state;
-
-    if (/^[0-9]$/.test(action)) {
-      if (state.fresh) {
-        state.display = action;
-      } else {
-        state.display = state.display === '0' ? action : `${state.display}${action}`;
-      }
-      state.fresh = false;
+    if(action==='clear'){s.display='0';s.accumulator=null;s.pending=null;s.fresh=true;return;}
+    if(isCommand(action)){
+      if(action==='input'){s.execution='input';s.waitingForInput=true;s.display='0';s.fresh=true;}
+      else if(action==='halt'){s.execution='halt';s.fresh=true;}
+      else this.executeCommand(action);
       return;
     }
-
-    if (action === 'decimal') {
-      if (state.fresh) {
-        state.display = '0.';
-      } else if (!String(state.display).includes('.')) {
-        state.display = `${state.display}.`;
-      }
-      state.fresh = false;
-    }
+    this.perform(action as Action);
   }
 
-  private enterOperation(action: Action): void {
-    const state = this.state;
-    const operations: Operation[] = ['add', 'subtract', 'multiply', 'divide'];
-
-    if (operations.includes(action as Operation)) {
-      const operation = action as Operation;
-      if (state.pending) {
-        state.accumulator = this.stepCalculation(
-          state.pending,
-          state.accumulator ?? this.currentValue(),
-          this.currentValue(),
-        );
-        state.display = state.accumulator;
-      }
-
-      state.accumulator = this.currentValue();
-      state.pending = operation;
-      state.fresh = true;
-      return;
+  selectBank(bank:ProgramBank):void{this.state.bank=bank;}
+  clearProgram(bank:ProgramBank=this.state.bank):void{this.state.programs[bank]=[];}
+  loadProgram(bank:ProgramBank,steps:ProgramStep[]):void{this.state.programs[bank]=[...steps];this.state.bank=bank;this.state.mode='RUN';}
+  private value():number{return Number(this.state.display)||0;}
+  private start(bank:ProgramBank):void{const s=this.state;s.bank=bank;s.mode='RUN';s.inputValue=this.value();s.pc=0;s.accumulator=null;s.pending=null;s.fresh=true;s.execution='running';this.resume();}
+  private resume():void{
+    const s=this.state, program=s.programs[s.bank];let count=0;
+    while(s.pc<program.length&&count++<LIMIT&&s.execution==='running'){
+      const step=program[s.pc++];
+      if(step==='x'){s.display=s.inputValue;s.fresh=false;continue;}
+      if(step==='input'){s.execution='input';s.waitingForInput=true;s.display='0';s.fresh=true;return;}
+      if(step==='halt'){s.execution='halt';s.fresh=true;return;}
+      if(step==='return'){s.pc=0;continue;}
+      if(step==='loopPositive'){if(this.value()>0)s.pc=0;continue;}
+      if(step==='loopLessEqual'){if(this.value()<=(s.m??0))s.pc=0;continue;}
+      if(isCommand(step)){this.executeCommand(step);continue;}
+      this.perform(step as Action);
     }
-
-    if (action === 'equals' && state.pending) {
-      const left = state.accumulator ?? 0;
-      this.setDisplay(this.stepCalculation(state.pending, left, this.currentValue()));
-      state.pending = null;
-      state.accumulator = null;
-    }
+    if(s.execution!=='running')return;
+    if(count>=LIMIT&&s.pc<program.length){s.execution='error';s.error='PROGRAM LIMIT';return;}
+    s.execution='finished';
   }
-
-  private enterSpecialKey(action: Action, source: PressSource): void {
-    const state = this.state;
-
-    if (action === 'x') {
-      if (source === 'replay') {
-        state.display = state.inputValue;
-        state.fresh = false;
-      } else {
-        state.inputX = true;
-      }
-      return;
-    }
-
-    if (action === 'pi' || action === 'negate') {
-      this.applyFunction(action);
-      return;
-    }
-
-    const normalFunctions = ['square', 'sqrt', 'sin', 'cos', 'tan'];
-    if (!normalFunctions.includes(action)) return;
-
-    const inverseFunctions: Partial<Record<Action, InverseFunction>> = {
-      sin: 'asin',
-      cos: 'acos',
-      tan: 'atan',
-    };
-    let selected: Action | InverseFunction = action;
-    if (state.shift) {
-      if (action === 'square') selected = 'sqrt';
-      else if (action === 'sqrt') selected = 'square';
-      else selected = inverseFunctions[action] ?? action;
-    }
-
-    this.applyFunction(selected);
-    state.shift = false;
+  private executeCommand(command:ProgramCommand):void{
+    const s=this.state;
+    if(command==='min'){s.m=this.value();return;}
+    if(command==='mr'){this.set(s.m??0);return;}
+    const match=/^(kin|kout)([1-6])$/.exec(command);
+    if(match){const i=Number(match[2])-1;if(match[1]==='kin')s.memories[i]=this.value();else {this.set(s.memories[i]??0);if(s.execution==='running')s.execution='output';}}
   }
-
-  private applyFunction(operation: Action | InverseFunction): void {
-    const value = this.currentValue();
-    const radians = this.state.angle === 'DEG' ? (value * Math.PI) / 180 : value;
-    const degrees = (result: number): number => this.state.angle === 'DEG'
-      ? (result * 180) / Math.PI
-      : result;
-
-    switch (operation) {
-      case 'square':
-        this.setDisplay(value * value);
-        break;
-      case 'sqrt':
-        this.setDisplay(Math.sqrt(value));
-        break;
-      case 'sin':
-        this.setDisplay(Math.sin(radians));
-        break;
-      case 'cos':
-        this.setDisplay(Math.cos(radians));
-        break;
-      case 'tan':
-        this.setDisplay(Math.tan(radians));
-        break;
-      case 'asin':
-        this.setDisplay(degrees(Math.asin(value)));
-        break;
-      case 'acos':
-        this.setDisplay(degrees(Math.acos(value)));
-        break;
-      case 'atan':
-        this.setDisplay(degrees(Math.atan(value)));
-        break;
-      case 'pi':
-        this.setDisplay(Math.PI);
-        break;
-      case 'negate':
-        this.setDisplay(-value);
-        break;
+  private set(n:number):void{this.state.display=Number.isFinite(n)?n:'Math Error';this.state.fresh=true;}
+  private perform(a:Action):void{
+    const s=this.state;
+    if(/^[0-9]$/.test(a)){s.display=s.fresh?a:(s.display==='0'?a:`${s.display}${a}`);s.fresh=false;return;}
+    if(a==='decimal'){s.display=s.fresh?'0.':String(s.display).includes('.')?s.display:`${s.display}.`;s.fresh=false;return;}
+    if(['add','subtract','multiply','divide'].includes(a)){
+      const op=a as Operation;
+      if(s.pending){
+        const left=s.accumulator??this.value(), right=this.value();
+        s.accumulator=s.pending==='add'?left+right:s.pending==='subtract'?left-right:s.pending==='multiply'?left*right:left/right;
+        s.display=s.accumulator;
+      } else s.accumulator=this.value();
+      s.pending=op;s.fresh=true;return;
     }
+    if(a==='equals'&&s.pending){const x=s.accumulator??0,y=this.value();this.set(s.pending==='add'?x+y:s.pending==='subtract'?x-y:s.pending==='multiply'?x*y:x/y);s.pending=null;s.accumulator=null;return;}
+    const v=this.value(),rad=s.angle==='DEG'?v*Math.PI/180:v;
+    if(a==='x')return;
+    if(a==='square')this.set(v*v);else if(a==='sqrt')this.set(Math.sqrt(v));else if(a==='sin')this.set(Math.sin(rad));else if(a==='cos')this.set(Math.cos(rad));else if(a==='tan')this.set(Math.tan(rad));else if(a==='pi')this.set(Math.PI);else if(a==='negate')this.set(-v);
   }
 }

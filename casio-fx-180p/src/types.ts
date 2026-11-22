@@ -25,14 +25,20 @@ export type Action =
   | 'negate'
   | 'execute';
 
+// Atomic program operations produced by the calculator's multi-key sequences.
+export type MemoryStep = `kin${1 | 2 | 3 | 4 | 5 | 6}` | `kout${1 | 2 | 3 | 4 | 5 | 6}`;
+export type ProgramCommand = MemoryStep | 'min' | 'mr' | 'halt' | 'input' | 'return'
+  | 'loopPositive' | 'loopLessEqual';
+export type KeyAction = Action | ProgramCommand | 'kin' | 'kout';
+
 export type ProgramStep = Exclude<
   Action,
   'shift' | 'mode' | 'runP1' | 'runP2' | 'clear' | 'execute'
->;
+> | ProgramCommand;
 
 export interface KeyDefinition {
   label: string;
-  action: Action;
+  action: KeyAction;
   sub?: string;
   cls?: string;
 }

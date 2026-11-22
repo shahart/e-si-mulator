@@ -31,4 +31,13 @@ export const keys: KeyDefinition[] = [
   { label: 'π', action: 'pi', sub: 'DRG' },
   { label: '(-)', action: 'negate' },
   { label: 'EXE', action: 'execute', cls: 'mode-key' },
+  { label: 'K IN', action: 'kin', sub: '1–6' },
+  { label: 'K OUT', action: 'kout', sub: '1–6' },
+  { label: 'M IN', action: 'min' },
+  { label: 'M READ', action: 'mr' },
+  { label: 'X IN', action: 'input' },
+  { label: 'HLT', action: 'halt' },
+  { label: 'X>0', action: 'loopPositive', sub: 'INV' },
+  { label: 'X≤M', action: 'loopLessEqual', sub: 'INV' },
+  { label: 'RETURN', action: 'return', sub: 'INV' },
 ];
