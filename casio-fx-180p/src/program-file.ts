@@ -18,10 +18,15 @@ const importableSteps = new Set<ProgramStep>([
   'pi',
   'negate',
   'x',
+  'leftParen', 'rightParen',
   'min', 'mr', 'halt', 'input', 'return', 'loopPositive', 'loopLessEqual',
   'kin1','kin2','kin3','kin4','kin5','kin6',
   'kout1','kout2','kout3','kout4','kout5','kout6',
 ]);
+const stepAliases: Record<string, ProgramStep> = {
+  '(': 'leftParen',
+  ')': 'rightParen',
+};
 
 export async function readProgramFile(file: File): Promise<ImportedProgram> {
   if (file.size > MAX_FILE_SIZE) {
@@ -39,11 +44,16 @@ export async function readProgramFile(file: File): Promise<ImportedProgram> {
     throw new Error('The file must contain a non-empty "steps" array.');
   }
 
-  if (!data.steps.every(isProgramStep)) {
-    throw new Error('The file contains a key that this emulator cannot record.');
+  const invalidIndex = data.steps.findIndex((step) => !isProgramStep(step));
+  if (invalidIndex !== -1) {
+    const invalidStep = JSON.stringify(data.steps[invalidIndex]) ?? String(data.steps[invalidIndex]);
+    const shownStep = invalidStep.length > 80 ? `${invalidStep.slice(0, 77)}...` : invalidStep;
+    throw new Error(
+      `The file contains a key that this emulator cannot record: ${shownStep} (step ${invalidIndex + 1}).`,
+    );
   }
 
-  const steps = data.steps as ProgramStep[];
+  const steps = data.steps.map((step) => stepAliases[step as string] ?? step as ProgramStep);
   const name = typeof data.name === 'string' && data.name.trim()
     ? data.name.trim()
     : file.name;
@@ -56,5 +66,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isProgramStep(value: unknown): value is ProgramStep {
-  return typeof value === 'string' && importableSteps.has(value as ProgramStep);
+  return typeof value === 'string'
+    && (importableSteps.has(value as ProgramStep) || Object.hasOwn(stepAliases, value));
 }

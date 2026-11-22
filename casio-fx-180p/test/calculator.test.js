@@ -61,7 +61,7 @@ test('rejects uploaded programs with unsupported key steps', async () => {
     'bad-program.json',
   );
 
-  await assert.rejects(readProgramFile(file), /cannot record/);
+  await assert.rejects(readProgramFile(file), /cannot record: "delete everything" \(step 1\)/);
 });
 
 test('rejects program files larger than the import limit', async () => {
@@ -109,7 +109,7 @@ test('program input pauses for a value and resumes at EXE', () => {
   assert.equal(calculator.state.execution, 'finished');
 });
 
-test('K OUT and HLT pause program execution until EXE', () => {
+test('K OUT displays and continues while HLT pauses until EXE', () => {
   const calculator = new Calculator();
   calculator.press('4');
   calculator.press('kin');
@@ -117,9 +117,6 @@ test('K OUT and HLT pause program execution until EXE', () => {
   calculator.loadProgram('P1', ['kout2', '7', 'halt', '9']);
   calculator.press('runP1');
 
-  assert.equal(calculator.state.display, 4);
-  assert.equal(calculator.state.execution, 'output');
-  calculator.press('execute');
   assert.equal(calculator.state.display, '7');
   assert.equal(calculator.state.execution, 'halt');
   calculator.press('execute');
@@ -156,4 +153,32 @@ test('program import accepts memory and control-flow commands', async () => {
   const file = new File([JSON.stringify({ name: 'Memory loop', steps })], 'memory-loop.json');
   const program = await readProgramFile(file);
   assert.deepEqual(program.steps, steps);
+});
+
+test('multiplication and division take precedence over addition and subtraction', () => {
+  const calculator = new Calculator();
+  for (const key of ['2', 'add', '3', 'multiply', '4', 'equals']) calculator.press(key);
+  assert.equal(calculator.state.display, 14);
+
+  calculator.press('clear');
+  for (const key of ['2', 'multiply', '3', 'add', '8', 'divide', '4', 'equals']) calculator.press(key);
+  assert.equal(calculator.state.display, 8);
+});
+
+test('parentheses group arithmetic and can be used inside a recorded program', () => {
+  const calculator = new Calculator();
+  for (const key of ['2', 'multiply', 'leftParen', '3', 'add', '4', 'rightParen', 'equals']) calculator.press(key);
+  assert.equal(calculator.state.display, 14);
+
+  calculator.loadProgram('P1', ['leftParen', '2', 'add', '3', 'rightParen', 'multiply', '4', 'equals']);
+  calculator.press('runP1');
+  assert.equal(calculator.state.display, 20);
+});
+
+test('program import converts literal parenthesis keys to calculator steps', async () => {
+  const file = new File([
+    JSON.stringify({ name: 'Grouped expression', steps: ['2', 'multiply', '(', '3', 'add', '4', ')', 'equals'] }),
+  ], 'grouped-expression.json');
+  const program = await readProgramFile(file);
+  assert.deepEqual(program.steps, ['2', 'multiply', 'leftParen', '3', 'add', '4', 'rightParen', 'equals']);
 });

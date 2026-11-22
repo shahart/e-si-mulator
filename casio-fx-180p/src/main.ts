@@ -20,6 +20,8 @@ const keyLabels: Record<string, string> = {
   negate: '(-)',
   decimal: '.',
   execute: 'EXE',
+  leftParen: '(',
+  rightParen: ')',
 };
 
 const demoSteps: ProgramStep[] = [
@@ -79,9 +81,10 @@ function render(): void {
   byId<HTMLSpanElement>('mode-indicator').textContent = state.mode;
   byId<HTMLSpanElement>('bank-indicator').textContent = state.bank;
   byId<HTMLSpanElement>('angle-indicator').textContent = state.angle;
-  byId<HTMLSpanElement>('line-indicator').textContent = state.mode === 'LRN'
-    ? String(state.programs[state.bank].length + 1).padStart(2, '0')
-    : '';
+  byId<HTMLSpanElement>('line-indicator').textContent =
+    state.mode === 'LRN'
+      ? String(state.programs[state.bank].length + 1).padStart(2, '0')
+      : '';
   byId<HTMLSpanElement>('memory-count').textContent = `${calculator.totalSteps} / 38 STEPS`;
   const status = document.getElementById('execution-status');
   if (status) status.textContent = state.execution === 'input' ? 'INPUT — enter value, press EXE'
@@ -153,7 +156,8 @@ async function importProgramFile(event: Event): Promise<void> {
       const message = `This program has ${program.steps.length} steps, but only ${available} are available.`;
       setFileStatus(message, true);
       window.alert(
-        `This program needs ${program.steps.length} steps, but only ${available} of the fx-180P's 38 shared steps are available.`,
+        `This program needs ${program.steps.length} steps, but only ${available} of the fx-180P's`
+          + ' 38 shared steps are available.',
       );
       return;
     }

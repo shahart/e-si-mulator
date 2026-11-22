@@ -23,6 +23,8 @@ export type Action =
   | 'x'
   | 'pi'
   | 'negate'
+  | 'leftParen'
+  | 'rightParen'
   | 'execute';
 
 // Atomic program operations produced by the calculator's multi-key sequences.

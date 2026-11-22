@@ -1,0 +1,16 @@
+{
+  "name": "Newton Raphson Method",
+  "steps": [
+    "kin1",
+    "add",
+    "(",
+    "2",
+    "divide",
+    "kout1",
+    ")",
+    "equals",
+    "divide",
+    "2",
+    "equals"
+  ]
+}

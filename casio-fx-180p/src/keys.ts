@@ -40,4 +40,6 @@ export const keys: KeyDefinition[] = [
   { label: 'X>0', action: 'loopPositive', sub: 'INV' },
   { label: 'X≤M', action: 'loopLessEqual', sub: 'INV' },
   { label: 'RETURN', action: 'return', sub: 'INV' },
+  { label: '(', action: 'leftParen' },
+  { label: ')', action: 'rightParen' },
 ];
