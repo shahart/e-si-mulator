@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "programs": [
+    {
+      "name": "MANDELBR",
+      "source": [
+        "' Max iterations in M, bounds A..B (real) and C..D (imag)",
+        "20 -> M",
+        "-2.0 -> A",
+        "1.0 -> B",
+        "-1.2 -> C",
+        "1.2 -> D",
+        "ClrText",
+        "ViewWindow A, B, 0, C, D, 0",
+        "For 0 -> J To 62",
+        "  C + (D - C) * J / 62 -> Y",
+        "  For 0 -> I To 126",
+        "    A + (B - A) * I / 126 -> X",
+        "    0 -> U",
+        "    0 -> V",
+        "    0 -> K",
+        "    While (U * U + V * V <= 4) And (K < M)",
+        "      U * U - V * V + X -> T",
+        "      2 * U * V + Y -> V",
+        "      T -> U",
+        "      K + 1 -> K",
+        "    LpWhile",
+        "    If K = M",
+        "      Then PlotOn X, Y",
+        "    IfEnd",
+        "  Next I",
+        "Next J"
+      ]
+    }
+  ]
+}

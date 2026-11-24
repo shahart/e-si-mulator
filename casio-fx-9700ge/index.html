@@ -35,6 +35,7 @@
             <span>Ready</span>
           </output>
           <canvas
+            id="graph-canvas"
             class="graph-screen"
             width="128"
             height="64"
@@ -63,15 +64,18 @@
         </div>
 
         <div class="actions">
-          <label class="button primary" for="upload">Import JSON</label>
+          <label class="button primary" for="upload">Import program</label>
           <input
             id="upload"
             class="visually-hidden"
             type="file"
-            accept=".json,application/json"
+            accept=".json,.txt,.bas,.casio,.casi,application/json,text/plain"
           >
+          <button id="load-example" class="button" type="button">Mandelbrot example</button>
+          <button id="load-sine" class="button" type="button">Sine wave</button>
           <button id="export-programs" class="button" type="button">Export JSON</button>
           <button id="new-program" class="button" type="button">New program</button>
+          <button id="clear-graph" class="button" type="button">Clear graph</button>
         </div>
 
         <p id="file-status" class="status" role="status" aria-live="polite">
@@ -105,11 +109,26 @@
         <details class="reference">
           <summary>Supported program commands</summary>
           <p>
-            Arithmetic and variables A–Z; assignment with <code>→</code>; input such as
-            <code>?"X="→A</code>; <code>Disp</code>, quoted text, <code>Lbl</code>,
-            <code>Goto</code>, <code>If condition⇒Goto label</code>, <code>If … Then</code>/<code>IfEnd</code>,
-            <code>Prog</code>, <code>Return</code>, <code>Stop</code>, and <code>Cls</code>.
-            Functions include SIN, COS, TAN, SQRT, ABS, LOG, LN, and EXP. Use <code>^</code> for powers.
+            Upload a <code>.txt</code>/<code>.bas</code> file of Casio BASIC lines or a JSON program
+            file. A text file is named from its filename; JSON keeps its stored names.
+          </p>
+          <p>
+            Arithmetic and variables A–Z; assignment with <code>→</code> or <code>-&gt;</code>;
+            input such as <code>?"X="→A</code>; <code>Disp</code>, quoted text, <code>Lbl</code>,
+            <code>Goto</code>, <code>If condition⇒Goto label</code>, <code>If … Then</code> /
+            <code>Else</code> / <code>IfEnd</code>, <code>For … To … Step …</code> / <code>Next</code>,
+            <code>While … LpWhile</code>, <code>While … WhileEnd</code>, <code>Do … LpWhile</code>,
+            <code>Prog</code>, <code>Return</code>, <code>Stop</code>, and
+            <code>Error "message"</code> to stop with a custom error.
+          </p>
+          <p>
+            Graph commands: <code>ViewWindow xMin, xMax, xScale, yMin, yMax, yScale</code>,
+            <code>PlotOn X, Y</code>, <code>PlotOff X, Y</code>, <code>Line x1, y1, x2, y2</code>,
+            <code>ClrGraph</code>, and <code>ClrText</code>. Conditions support
+            <code>=</code>, <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>,
+            <code>&gt;=</code>, <code>&lt;&gt;</code>, <code>And</code>, <code>Or</code>, and
+            <code>Not</code>. Functions include SIN, COS, TAN, SQRT, ABS, LOG, LN, EXP, INT,
+            FRAC, and ROUND. Lines starting with <code>'</code> are comments.
           </p>
           <p>
             Example: <code>?"X="→A</code> then <code>A^2→B</code> then <code>Disp B</code>.

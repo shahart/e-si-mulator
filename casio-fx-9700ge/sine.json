@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "programs": [
+    {
+      "name": "SINEWAVE",
+      "source": [
+        "ClrGraph",
+        "-10 -> A",
+        "10 -> B",
+        "-1.5 -> C",
+        "1.5 -> D",
+        "ViewWindow A, B, 0, C, D, 0",
+        "For 0 -> I To 127",
+        "  A + (B - A) * I / 127 -> X",
+        "  SIN(X) -> Y",
+        "  PlotOn X, Y",
+        "Next I"
+      ]
+    }
+  ]
+}

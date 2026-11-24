@@ -1,6 +1,6 @@
 # Casio fx-9700GE simulator
 
-A standalone TypeScript browser app for exploring the fx-9700GE program workflow. It supports editable named programs, a small command interpreter, and JSON import/export. The 24 KiB shared memory display is an approximation based on UTF-8 source size; the simulator is not a full hardware emulator.
+A standalone TypeScript browser app for exploring the fx-9700GE program workflow. It supports editable named programs, a Casio BASIC subset with loops and plotting, 128×64 graphics output, and text/JSON import/export. The 24 KiB shared memory display is an approximation based on UTF-8 source size; the simulator is not a full hardware emulator.
 
 ## Run
 
@@ -11,6 +11,37 @@ npm start
 ```
 
 Open <http://localhost:8001>.
+
+## Upload a program
+
+Use **Import program** to load either:
+
+- a plain-text `.txt`, `.bas`, `.casio`, or `.casi` file containing one Casio BASIC program (the program name comes from the filename), or
+- a JSON program/collection in the format below.
+
+**Mandelbrot example** and **Sine wave** load the bundled `mandelbrot.json` and `sine.json` into the editor; press **Run program** to draw them on the graph canvas. **Clear graph** resets the canvas.
+
+Supported syntax includes `→`/`->` assignment, `If`/`Then`/`Else`/`IfEnd`, `For`/`Next`, `While`/`LpWhile`, `Do`/`LpWhile`, `While`/`WhileEnd`, `Lbl`/`Goto`, `Prog`, `Disp`, `ClrText`, `ClrGraph`, `ViewWindow`, `PlotOn`, `PlotOff`, `Line`, `Stop`, `Return`, and `Error "message"` (stops with a custom error). Comparisons, `And`/`Or`/`Not`, and functions such as SIN, COS, TAN, SQRT, ABS, LOG, LN, EXP, INT, FRAC, and ROUND are available. Lines beginning with `'` are comments.
+
+## Graph a function
+
+Yes — `PlotOn` plus `ViewWindow` can graph a function. For example, `y = sin(x)` in radians:
+
+```text
+ClrGraph
+-10 -> A
+10 -> B
+-1.5 -> C
+1.5 -> D
+ViewWindow A, B, 0, C, D, 0
+For 0 -> I To 127
+  A + (B - A) * I / 127 -> X
+  SIN(X) -> Y
+  PlotOn X, Y
+Next I
+```
+
+Paste that into the editor and press **Run program**. Use `SIN(X * PI / 180)` instead if `X` is in degrees. Functions need parentheses, so write `SIN(X)`, not `SIN X`.
 
 ## JSON format
 

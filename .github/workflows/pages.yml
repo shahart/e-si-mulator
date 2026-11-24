@@ -52,7 +52,7 @@ jobs:
 
       - name: Add fx-9700GE app to static site
         run: |
-          cp casio-fx-9700ge/index.html casio-fx-9700ge/style.css casio-fx-9700ge/demo-program.json _site/casio-fx-9700ge/
+          cp casio-fx-9700ge/index.html casio-fx-9700ge/style.css casio-fx-9700ge/demo-program.json casio-fx-9700ge/mandelbrot.json casio-fx-9700ge/sine.json _site/casio-fx-9700ge/
           cp -R casio-fx-9700ge/dist _site/casio-fx-9700ge/dist
         working-directory: .
 

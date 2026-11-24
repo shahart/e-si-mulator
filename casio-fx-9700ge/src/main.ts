@@ -1,5 +1,12 @@
+import { createGraphRenderer } from './graph.js';
 import { evaluateExpression, formatNumber, runProgram } from './machine.js';
-import { MEMORY_BYTES, memoryUsed, readPrograms, type Program } from './programs.js';
+import {
+  MEMORY_BYTES,
+  memoryUsed,
+  readPrograms,
+  validatePrograms,
+  type Program,
+} from './programs.js';
 
 let programs: Program[] = [{
   name: 'SQUARE',
@@ -19,11 +26,18 @@ const $ = <T extends HTMLElement>(id: string): T => {
 const display = $('display');
 const programList = $('program-list');
 const editor = $('program-source') as HTMLTextAreaElement;
+const graph = createGraphRenderer($('graph-canvas') as HTMLCanvasElement);
 
 function showDisplay(text: string): void {
   const line = document.createElement('span');
   line.textContent = text;
   display.replaceChildren(line);
+}
+
+function setStatus(message: string, error = false): void {
+  const status = $('file-status');
+  status.textContent = message;
+  status.classList.toggle('error', error);
 }
 
 function enterDigit(digit: string): void {
@@ -95,12 +109,6 @@ function clearCalculator(): void {
   showDisplay('Ready');
 }
 
-function setStatus(message: string, error = false): void {
-  const status = $('file-status');
-  status.textContent = message;
-  status.classList.toggle('error', error);
-}
-
 function render(): void {
   $('mode-indicator').textContent = mode;
   $('program-count').textContent = `${programs.length} PROGRAM${programs.length === 1 ? '' : 'S'}`;
@@ -122,7 +130,10 @@ function render(): void {
     programList.append(button);
   });
 
-  if (programs[selected]) editor.value = programs[selected].source.join('\n');
+  if (programs[selected]) {
+    editor.value = programs[selected].source.join('\n');
+    ($('program-name') as HTMLInputElement).value = programs[selected].name;
+  }
 }
 
 function saveEditor(): void {
@@ -134,30 +145,78 @@ function saveEditor(): void {
   };
 }
 
+function importPrograms(imported: Program[], label: string): void {
+  const importedNames = new Set(imported.map((program) => program.name.toUpperCase()));
+  const merged = [
+    ...programs.filter((program) => !importedNames.has(program.name.toUpperCase())),
+    ...imported,
+  ];
+
+  if (memoryUsed(merged) > MEMORY_BYTES) {
+    throw new Error('Import would exceed the remaining 24 KiB memory.');
+  }
+
+  programs = merged;
+  selected = programs.findIndex(
+    (program) => program.name.toUpperCase() === imported[0].name.toUpperCase(),
+  );
+  mode = 'PRGM';
+  render();
+  setStatus(
+    `Imported ${imported.length} program${imported.length === 1 ? '' : 's'} from ${label}. `
+    + 'Programs with matching names were replaced.',
+  );
+}
+
 function run(): void {
   saveEditor();
-  const result = runProgram(programs[selected], programs, (label) => {
-    return Number(window.prompt(label) ?? 0);
-  });
+  graph.clear();
 
-  display.replaceChildren();
-  const lines = result.lines.length ? result.lines : [result.error || 'Ready'];
-  lines.slice(-5).forEach((line) => {
-    const row = document.createElement('span');
-    row.textContent = line;
-    display.append(row);
-  });
+  const name = programs[selected]?.name ?? 'PROGRAM';
+  const startedAt = new Date();
+  console.log(`[${startedAt.toISOString()}] Run ${name}: start`);
 
-  if (result.error) {
-    setStatus(result.error, true);
-  } else {
-    const count = result.lines.length;
-    setStatus(`Ran ${programs[selected].name}. ${count} output line${count === 1 ? '' : 's'}.`);
+  try {
+    const result = runProgram(programs[selected], programs, (label) => {
+      return Number(window.prompt(label) ?? 0);
+    });
+
+    graph.draw(result.graph);
+    display.replaceChildren();
+    const lines = result.lines.length ? result.lines : [result.error || 'Ready'];
+    lines.slice(-5).forEach((line) => {
+      const row = document.createElement('span');
+      row.textContent = line;
+      display.append(row);
+    });
+
+    if (result.error) {
+      setStatus(result.error, true);
+      return;
+    }
+
+    const plotCount = result.graph.filter((action) => action.kind === 'plot' && action.on).length;
+    if (plotCount) {
+      setStatus(`Ran ${name}. ${plotCount} point${plotCount === 1 ? '' : 's'} plotted.`);
+    } else {
+      const count = result.lines.length;
+      setStatus(`Ran ${name}. ${count} output line${count === 1 ? '' : 's'}.`);
+    }
+  } finally {
+    const stoppedAt = new Date();
+    console.log(
+      `[${stoppedAt.toISOString()}] Run ${name}: stop (${stoppedAt.getTime() - startedAt.getTime()} ms)`,
+    );
   }
 }
 
 $('program-source').addEventListener('input', saveEditor);
 $('run-program').addEventListener('click', run);
+$('clear-graph').addEventListener('click', () => {
+  graph.clear();
+  setStatus('Graph cleared.');
+});
+
 $('save-program').addEventListener('click', () => {
   saveEditor();
   render();
@@ -202,28 +261,32 @@ $('mode-button').addEventListener('click', () => {
   setStatus(mode === 'PRGM' ? 'Program editor ready.' : 'Run mode ready.');
 });
 
+async function loadExample(filename: string, description: string): Promise<void> {
+  try {
+    const response = await fetch(`./${filename}`);
+    if (!response.ok) throw new Error(`Could not load example (HTTP ${response.status}).`);
+    const data: unknown = await response.json();
+    importPrograms(validatePrograms(data), filename);
+    setStatus(`Loaded the ${description} example. Press Run program to draw it.`);
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : 'Could not load example.', true);
+  }
+}
+
+$('load-example').addEventListener('click', () => {
+  void loadExample('mandelbrot.json', 'Mandelbrot');
+});
+$('load-sine').addEventListener('click', () => {
+  void loadExample('sine.json', 'sine wave');
+});
+
 $('upload').addEventListener('change', async (event) => {
   const input = event.currentTarget as HTMLInputElement;
   const file = input.files?.[0];
   if (!file) return;
 
   try {
-    const imported = await readPrograms(file);
-    const importedNames = new Set(imported.map((program) => program.name.toUpperCase()));
-    const merged = [
-      ...programs.filter((program) => !importedNames.has(program.name.toUpperCase())),
-      ...imported,
-    ];
-
-    if (memoryUsed(merged) > MEMORY_BYTES) {
-      throw new Error('Import would exceed the remaining 24 KiB memory.');
-    }
-
-    programs = merged;
-    selected = programs.findIndex((program) => program.name === imported[0].name);
-    mode = 'PRGM';
-    render();
-    setStatus(`Imported ${imported.length} program${imported.length === 1 ? '' : 's'} from ${file.name}. Programs with matching names were replaced.`);
+    importPrograms(await readPrograms(file), file.name);
   } catch (error) {
     setStatus(error instanceof Error ? error.message : 'Import failed.', true);
   } finally {
