@@ -604,6 +604,7 @@ export function runProgram(
   program: Program,
   programs: Program[],
   input: (prompt: string) => number = () => 0,
+  initialVariables: Record<string, number> = {},
 ): RunResult {
   const runtime: Runtime = {
     variables: Object.fromEntries(
@@ -616,6 +617,10 @@ export function runProgram(
     programs,
     steps: 0,
   };
+
+  for (const [name, value] of Object.entries(initialVariables)) {
+    if (/^[A-Z]$/.test(name) && Number.isFinite(value)) runtime.variables[name] = value;
+  }
 
   let error = '';
   try {

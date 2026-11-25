@@ -14,12 +14,9 @@ Open <http://localhost:8001>.
 
 ## Upload a program
 
-Use **Import program** to load either:
+Use **Import program** to load a JSON program/collection containing one Casio BASIC program.
 
-- a plain-text `.txt`, `.bas`, `.casio`, or `.casi` file containing one Casio BASIC program (the program name comes from the filename), or
-- a JSON program/collection in the format below.
-
-**Mandelbrot example** and **Sine wave** load the bundled `mandelbrot.json` and `sine.json` into the editor; press **Run program** to draw them on the graph canvas. **Clear graph** resets the canvas.
+Mandelbrot is loaded from the bundled `mandelbrot.json` and run at startup, drawing it on the graph canvas. **Mandelbrot example** and **Sine wave** load `mandelbrot.json` and `sine.json` into the editor. URLs written in program comments (such as the Mandelbrot Wikipedia link) are underlined and clickable in the program source editor. **Clear graph** resets the canvas.
 
 Supported syntax includes `→`/`->` assignment, `If`/`Then`/`Else`/`IfEnd`, `For`/`Next`, `While`/`LpWhile`, `Do`/`LpWhile`, `While`/`WhileEnd`, `Lbl`/`Goto`, `Prog`, `Disp`, `ClrText`, `ClrGraph`, `ViewWindow`, `PlotOn`, `PlotOff`, `Line`, `Stop`, `Return`, and `Error "message"` (stops with a custom error). Comparisons, `And`/`Or`/`Not`, and functions such as SIN, COS, TAN, SQRT, ABS, LOG, LN, EXP, INT, FRAC, and ROUND are available. Lines beginning with `'` are comments.
 

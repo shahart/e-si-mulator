@@ -1,21 +1,28 @@
 import { createGraphRenderer } from './graph.js';
+import {
+  functionExpression,
+  keyActionFor,
+  keypadRows,
+  type CalculatorFunction,
+  type KeyAction,
+} from './keypad.js';
 import { evaluateExpression, formatNumber, runProgram } from './machine.js';
 import {
   MEMORY_BYTES,
   memoryUsed,
   readPrograms,
+  sourceLinks,
   validatePrograms,
   type Program,
 } from './programs.js';
 
-let programs: Program[] = [{
-  name: 'SQUARE',
-  source: ['?"X="→A', 'A^2→B', 'Disp B'],
-}];
+let programs: Program[] = [];
 let selected = 0;
 let mode = 'RUN';
 let calculatorExpression = '';
 let calculationComplete = false;
+let shiftActive = false;
+let calculatorMemory = 0;
 
 const $ = <T extends HTMLElement>(id: string): T => {
   const element = document.getElementById(id);
@@ -27,6 +34,9 @@ const display = $('display');
 const programList = $('program-list');
 const editor = $('program-source') as HTMLTextAreaElement;
 const graph = createGraphRenderer($('graph-canvas') as HTMLCanvasElement);
+const keygrid = $('keypad');
+const shiftIndicator = $('shift-indicator');
+const memoryIndicator = $('memory-indicator');
 
 function showDisplay(text: string): void {
   const line = document.createElement('span');
@@ -40,10 +50,66 @@ function setStatus(message: string, error = false): void {
   status.classList.toggle('error', error);
 }
 
-function enterDigit(digit: string): void {
+async function readProgramFile(filename: string): Promise<Program[]> {
+  const response = await fetch(`./${filename}`);
+  if (!response.ok) throw new Error(`Could not load ${filename} (HTTP ${response.status}).`);
+  return validatePrograms(await response.json());
+}
+
+const sourceOverlay = $('source-links');
+
+function syncSourceOverlay(): void {
+  const scrollbarWidth = Math.max(0, editor.offsetWidth - editor.clientWidth - 2);
+  sourceOverlay.style.paddingRight = `${10 + scrollbarWidth}px`;
+  sourceOverlay.scrollTop = editor.scrollTop;
+}
+
+function renderSourceLinks(): void {
+  const source = editor.value;
+  sourceOverlay.replaceChildren();
+
+  let lastIndex = 0;
+  for (const link of sourceLinks(source)) {
+    sourceOverlay.append(document.createTextNode(source.slice(lastIndex, link.start)));
+
+    const anchor = document.createElement('a');
+    anchor.href = link.url;
+    anchor.textContent = link.url;
+    anchor.title = 'Open link in a new tab';
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    anchor.tabIndex = -1;
+    sourceOverlay.append(anchor);
+
+    lastIndex = link.end;
+  }
+  sourceOverlay.append(document.createTextNode(source.slice(lastIndex)));
+  syncSourceOverlay();
+}
+
+function enterValue(value: string): void {
   if (calculationComplete) calculatorExpression = '';
   calculationComplete = false;
-  calculatorExpression += digit;
+  calculatorExpression += value;
+  showDisplay(calculatorExpression);
+}
+
+function enterDigit(digit: string): void {
+  enterValue(digit);
+}
+
+function enterPi(): void {
+  enterValue('π');
+}
+
+function enterNegativeSign(): void {
+  if (!calculatorExpression || /[+−×÷^(]$/.test(calculatorExpression)) {
+    enterValue('-');
+    return;
+  }
+
+  calculatorExpression = `-(${calculatorExpression})`;
+  calculationComplete = false;
   showDisplay(calculatorExpression);
 }
 
@@ -80,17 +146,11 @@ function calculate(): void {
   }
 }
 
-function applyUnary(operation: 'inverse' | 'square' | 'sqrt'): void {
+function applyFunction(name: CalculatorFunction): void {
   if (!calculatorExpression) return;
 
   try {
-    const expression = calculatorExpression;
-    const input = evaluateExpression(expression);
-    const answer = operation === 'inverse'
-      ? 1 / input
-      : operation === 'square'
-        ? input ** 2
-        : Math.sqrt(input);
+    const answer = evaluateExpression(functionExpression(name, calculatorExpression));
     calculatorExpression = formatNumber(answer);
     calculationComplete = true;
     showDisplay(calculatorExpression);
@@ -109,9 +169,73 @@ function clearCalculator(): void {
   showDisplay('Ready');
 }
 
+function clearAll(): void {
+  clearCalculator();
+  setStatus('All clear. M register kept.');
+}
+
+function setShift(active: boolean): void {
+  shiftActive = active;
+  shiftIndicator.hidden = !active;
+  const shiftKey = keygrid.querySelector<HTMLButtonElement>('[data-action="shift"]');
+  shiftKey?.classList.toggle('pressed', active);
+  shiftKey?.setAttribute('aria-pressed', String(active));
+}
+
+function toggleMode(): void {
+  mode = mode === 'RUN' ? 'PRGM' : 'RUN';
+  render();
+  setStatus(mode === 'PRGM' ? 'Program editor ready.' : 'Run mode ready.');
+}
+
+function updateMemoryIndicator(): void {
+  memoryIndicator.textContent = `M ${formatNumber(calculatorMemory)}`;
+}
+
+function storeMemory(): void {
+  try {
+    const value = calculatorExpression ? evaluateExpression(calculatorExpression) : 0;
+    if (!Number.isFinite(value)) throw new Error('M cannot store a non-finite value.');
+    calculatorMemory = value;
+    updateMemoryIndicator();
+    setStatus(`M in: ${formatNumber(calculatorMemory)}`);
+  } catch (error) {
+    showDisplay('Math ERROR');
+    setStatus(error instanceof Error ? error.message : 'Math ERROR', true);
+    calculatorExpression = '';
+    calculationComplete = true;
+  }
+}
+
+function readMemory(): void {
+  if (calculationComplete) calculatorExpression = '';
+  calculationComplete = false;
+  calculatorExpression += formatNumber(calculatorMemory);
+  showDisplay(calculatorExpression);
+  setStatus(`M read: ${formatNumber(calculatorMemory)}`);
+}
+
+function dispatchKey(action: KeyAction): void {
+  switch (action.kind) {
+    case 'digit': enterDigit(action.value); break;
+    case 'operator': enterOperator(action.value); break;
+    case 'function': applyFunction(action.value); break;
+    case 'execute': calculate(); break;
+    case 'memoryStore': storeMemory(); break;
+    case 'memoryRead': readMemory(); break;
+    case 'clear': clearCalculator(); break;
+    case 'clearAll': clearAll(); break;
+    case 'constant': enterPi(); break;
+    case 'negative': enterNegativeSign(); break;
+    case 'mode': toggleMode(); break;
+    case 'shift': setShift(true); break;
+  }
+}
+
 function render(): void {
   $('mode-indicator').textContent = mode;
   $('program-count').textContent = `${programs.length} PROGRAM${programs.length === 1 ? '' : 'S'}`;
+  updateMemoryIndicator();
   $('memory-count').textContent = `${memoryUsed(programs).toLocaleString()} / ${MEMORY_BYTES.toLocaleString()} BYTES`;
   programList.replaceChildren();
 
@@ -134,6 +258,8 @@ function render(): void {
     editor.value = programs[selected].source.join('\n');
     ($('program-name') as HTMLInputElement).value = programs[selected].name;
   }
+
+  renderSourceLinks();
 }
 
 function saveEditor(): void {
@@ -179,7 +305,12 @@ function run(): void {
   try {
     const result = runProgram(programs[selected], programs, (label) => {
       return Number(window.prompt(label) ?? 0);
-    });
+    }, { M: calculatorMemory });
+
+    if (Number.isFinite(result.variables.M)) {
+      calculatorMemory = result.variables.M;
+      updateMemoryIndicator();
+    }
 
     graph.draw(result.graph);
     display.replaceChildren();
@@ -210,7 +341,12 @@ function run(): void {
   }
 }
 
-$('program-source').addEventListener('input', saveEditor);
+$('program-source').addEventListener('input', () => {
+  saveEditor();
+  renderSourceLinks();
+});
+editor.addEventListener('scroll', syncSourceOverlay);
+new ResizeObserver(syncSourceOverlay).observe(editor);
 $('run-program').addEventListener('click', run);
 $('clear-graph').addEventListener('click', () => {
   graph.clear();
@@ -255,18 +391,11 @@ $('program-name').addEventListener('change', () => {
   render();
 });
 
-$('mode-button').addEventListener('click', () => {
-  mode = mode === 'RUN' ? 'PRGM' : 'RUN';
-  render();
-  setStatus(mode === 'PRGM' ? 'Program editor ready.' : 'Run mode ready.');
-});
+$('mode-button').addEventListener('click', toggleMode);
 
 async function loadExample(filename: string, description: string): Promise<void> {
   try {
-    const response = await fetch(`./${filename}`);
-    if (!response.ok) throw new Error(`Could not load example (HTTP ${response.status}).`);
-    const data: unknown = await response.json();
-    importPrograms(validatePrograms(data), filename);
+    importPrograms(await readProgramFile(filename), filename);
     setStatus(`Loaded the ${description} example. Press Run program to draw it.`);
   } catch (error) {
     setStatus(error instanceof Error ? error.message : 'Could not load example.', true);
@@ -319,46 +448,40 @@ $('delete-program').addEventListener('click', () => {
   setStatus(`Deleted ${deleted.name}.`);
 });
 
-const keypadRows = [
-  ['MENU', 'EXIT'],
-  ['x⁻¹', 'x²', '^', '√'],
-  ['7', '8', '9', '÷'],
-  ['4', '5', '6', '×'],
-  ['1', '2', '3', '−'],
-  ['0', '.', 'EXE', '+'],
-];
-
-const keygrid = $('keypad');
 keypadRows.forEach((row, rowIndex) => {
   const keyRow = document.createElement('div');
   keyRow.className = 'key-row';
 
-  row.forEach((label) => {
+  row.forEach((definition) => {
     const key = document.createElement('button');
     key.type = 'button';
-    key.className = `key${rowIndex < 2 ? ' function-key' : ''}${label === 'EXE' ? ' execute' : ''}`;
-    key.textContent = label;
+    key.dataset.action = definition.action.kind;
+    key.className = `key${rowIndex < 4 ? ' function-key' : ''}${definition.cls ? ` ${definition.cls}` : ''}`;
+
+    if (definition.sub) {
+      const subLabel = document.createElement('small');
+      subLabel.textContent = definition.sub;
+      key.append(subLabel, document.createTextNode(definition.label));
+      key.setAttribute('aria-label', `${definition.label}, secondary ${definition.sub}`);
+    } else {
+      key.textContent = definition.label;
+      key.setAttribute('aria-label', definition.label);
+    }
+
+    if (definition.cls === 'shift') key.setAttribute('aria-pressed', 'false');
+
     key.addEventListener('click', () => {
-      if (/^[0-9.]$/.test(label)) {
-        enterDigit(label);
-      } else if (['+', '−', '×', '÷', '^'].includes(label)) {
-        enterOperator(label);
-      } else if (label === 'EXE') {
-        calculate();
-      } else if (label === 'x⁻¹') {
-        applyUnary('inverse');
-      } else if (label === 'x²') {
-        applyUnary('square');
-      } else if (label === '√') {
-        applyUnary('sqrt');
-      } else if (label === 'MENU') {
-        mode = mode === 'RUN' ? 'PRGM' : 'RUN';
-        render();
-      } else if (label === 'EXIT') {
-        clearCalculator();
-      } else {
-        setStatus(`${label} key selected. Enter full commands in the program editor.`);
+      if (definition.action.kind === 'shift') {
+        setShift(!shiftActive);
+        setStatus(shiftActive
+          ? 'SHIFT on: the next key uses its secondary function.'
+          : 'SHIFT off.');
+        return;
       }
+
+      const action = keyActionFor(definition, shiftActive);
+      setShift(false);
+      dispatchKey(action);
     });
     keyRow.append(key);
   });
@@ -393,4 +516,15 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+async function loadDefaultProgram(): Promise<void> {
+  try {
+    programs = await readProgramFile('mandelbrot.json');
+  } catch (error) {
+    programs = [{ name: 'PROGRAM1', source: ['Disp 0'] }];
+    setStatus(error instanceof Error ? error.message : 'Could not load the default program.', true);
+  }
+}
+
+await loadDefaultProgram();
 render();
+run();

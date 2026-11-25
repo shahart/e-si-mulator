@@ -32,3 +32,7 @@ The repository has no commit history yet, so no established commit convention is
 ## Deployment
 
 The workflow deploys on pushes to the repository's default branch. Keep Pages configured to use **GitHub Actions** as its publishing source.
+
+## Agent notes
+
+See `AGENT_NOTES.md` for locally persisted session knowledge, including conventions for the `casio-fx-9700ge/` app.

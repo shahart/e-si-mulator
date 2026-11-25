@@ -29,6 +29,8 @@
         <div class="screen-frame">
           <div class="screen-top">
             <span id="mode-indicator">RUN</span>
+            <span id="shift-indicator" class="shift-indicator" hidden>SHIFT</span>
+            <span id="memory-indicator">M 0</span>
             <span id="program-count">1 PROGRAM</span>
           </div>
           <output id="display" class="screen" aria-live="polite">
@@ -69,7 +71,7 @@
             id="upload"
             class="visually-hidden"
             type="file"
-            accept=".json,.txt,.bas,.casio,.casi,application/json,text/plain"
+            accept=".json,application/json,text/plain"
           >
           <button id="load-example" class="button" type="button">Mandelbrot example</button>
           <button id="load-sine" class="button" type="button">Sine wave</button>
@@ -86,17 +88,20 @@
           <nav id="program-list" class="program-list" aria-label="Saved programs"></nav>
           <div class="editor">
             <label for="program-name">Program name</label>
-            <input id="program-name" maxlength="8" value="SQUARE" autocomplete="off">
+            <input id="program-name" maxlength="8" value="MANDELBR" autocomplete="off">
 
             <label for="program-source">
               Program source <span>One command per line</span>
             </label>
-            <textarea
-              id="program-source"
-              spellcheck="false"
-              autocapitalize="off"
-              autocomplete="off"
-            ></textarea>
+            <div class="source-field">
+              <textarea
+                id="program-source"
+                spellcheck="false"
+                autocapitalize="off"
+                autocomplete="off"
+              ></textarea>
+              <div id="source-links" class="source-links" aria-hidden="true"></div>
+            </div>
 
             <div class="editor-actions">
               <button id="save-program" class="button" type="button">Save changes</button>
@@ -109,8 +114,8 @@
         <details class="reference">
           <summary>Supported program commands</summary>
           <p>
-            Upload a <code>.txt</code>/<code>.bas</code> file of Casio BASIC lines or a JSON program
-            file. A text file is named from its filename; JSON keeps its stored names.
+            Upload a JSON program
+            file. 
           </p>
           <p>
             Arithmetic and variables A–Z; assignment with <code>→</code> or <code>-&gt;</code>;

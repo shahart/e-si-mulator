@@ -11,6 +11,19 @@ test('runs arithmetic, variables, and prompted input', () => {
   assert.equal(result.error, '');
 });
 
+test('seeds variable M from the calculator register', () => {
+  const result = runProgram(
+    { name: 'MEMORY', source: ['M+1→M', 'Disp M'] },
+    [],
+    () => 0,
+    { M: 7 },
+  );
+
+  assert.equal(result.error, '');
+  assert.deepEqual(result.lines, ['8']);
+  assert.equal(result.variables.M, 8);
+});
+
 test('follows conditional jumps and detects unknown labels', () => {
   const result = runProgram({ name: 'BRANCH', source: ['2→A', 'A>1⇒Goto 2', 'Disp 0', 'Lbl 2', 'Disp A'] }, []);
   assert.deepEqual(result.lines, ['2']);

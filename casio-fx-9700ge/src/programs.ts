@@ -8,6 +8,7 @@ export const MEMORY_BYTES = 24 * 1024;
 const MAX_FILE_SIZE = 100_000;
 const MAX_LINE_LENGTH = 160;
 const NAME = /^[A-Za-z][A-Za-z0-9_]{0,7}$/;
+const URL_PATTERN = /https?:\/\/[^\s<>"']+/gi;
 
 export function memoryUsed(programs: Program[]): number {
   return programs.reduce((total, program) => {
@@ -61,6 +62,21 @@ export function validatePrograms(value: unknown): Program[] {
   }
 
   return parsed;
+}
+
+export interface SourceLink {
+  start: number;
+  end: number;
+  url: string;
+}
+
+export function sourceLinks(source: string): SourceLink[] {
+  return [...source.matchAll(URL_PATTERN)].flatMap((match) => {
+    const raw = match[0];
+    const url = raw.replace(/[.,;:!?)\]]+$/, '');
+    const start = match.index ?? 0;
+    return url ? [{ start, end: start + url.length, url }] : [];
+  });
 }
 
 export function programNameFromFilename(filename: string): string {

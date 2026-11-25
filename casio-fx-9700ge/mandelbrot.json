@@ -5,6 +5,7 @@
       "name": "MANDELBR",
       "source": [
         "' Max iterations in M, bounds A..B (real) and C..D (imag)",
+        "' https://en.wikipedia.org/wiki/Mandelbrot_set",
         "20 -> M",
         "-2.0 -> A",
         "1.0 -> B",
