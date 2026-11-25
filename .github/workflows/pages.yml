@@ -43,6 +43,14 @@ jobs:
         run: npm test
         working-directory: casio-fx-9700ge
 
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: casio-fx-9700ge
+
+      - name: Test fx-9700GE canvas programs
+        run: npm run test:e2e
+        working-directory: casio-fx-9700ge
+
       - name: Prepare static site
         run: |
           mkdir -p _site/casio-fx-180p _site/casio-fx-9700ge

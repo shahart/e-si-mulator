@@ -12,6 +12,17 @@ npm start
 
 Open <http://localhost:8001>.
 
+## Browser tests with Playwright
+
+Install Chromium once, then run the end-to-end checks:
+
+```sh
+npm run test:e2e:install
+npm run test:e2e
+```
+
+The specs in `e2e/` load the app over HTTP, run the bundled Mandelbrot and Sine wave programs, and verify that the 128×64 graph canvas contains drawn pixels. `playwright.config.ts` starts the local server automatically and runs the specs one at a time.
+
 ## Upload a program
 
 Use **Import program** to load a JSON program/collection containing one Casio BASIC program.

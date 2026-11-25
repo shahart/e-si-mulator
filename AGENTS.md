@@ -23,7 +23,9 @@ Use TypeScript for application logic, ES module imports with `.js` specifiers, t
 
 ## Testing
 
-Tests use Node's built-in `node:test` runner and live in `test/*.test.js`. Import compiled modules from `dist/`; `npm test` compiles them first. Cover calculator behavior, the shared 38-step program limit, and file import validation when changing those areas. There is no coverage threshold.
+Tests use Vitest and live in `test/*.test.ts`. Import TypeScript sources from `src/`; `npm test` still compiles `dist/` first because the Pages workflow publishes it. Use `npm run test:watch` while editing tests. Cover calculator behavior, the shared 38-step program limit, and file import validation when changing those areas. There is no coverage threshold.
+
+For `casio-fx-9700ge/`, unit tests remain in `test/*.test.js`; Playwright browser specs live in `e2e/*.spec.ts`. Run `npm run test:e2e:install` once and `npm run test:e2e` to check the built-in canvas-drawing programs. The Playwright config starts the HTTP server and runs specs serially.
 
 ## Commits and Pull Requests
 

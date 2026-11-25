@@ -4,3 +4,6 @@ casio-fx-180p/_site/
 casio-fx-9700ge/node_modules/
 casio-fx-9700ge/dist/
 casio-fx-9700ge/_site/
+casio-fx-9700ge/test-results/
+casio-fx-9700ge/playwright-report/
+casio-fx-9700ge/blob-report/

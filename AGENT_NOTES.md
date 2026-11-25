@@ -10,6 +10,7 @@ Local knowledge for future sessions in this workspace (kept in the repo since no
 ## fx-9700GE app
 
 - Lives in `casio-fx-9700ge/`. Run `npm test` there (TypeScript build + `node:test`); serve with `npm start` on port 8001 so browser ES modules load.
+- Playwright specs live in `e2e/`. Run `npm run test:e2e:install` once, then `npm run test:e2e`; the config starts the server on 8001 and checks that the startup Mandelbrot and loaded Sine wave programs draw ink on the canvas. Keep `workers: 1`: the Python static server resets concurrent ES-module requests.
 - The startup program is loaded from `mandelbrot.json` and executed immediately on page load via top-level `await` in `src/main.ts`. There is no hardcoded `SQUARE` default.
 - URLs in program source are found by `sourceLinks()` in `src/programs.ts` and shown as clickable anchors in a transparent overlay over the textarea (`#source-links` in `index.html`). The user wants links clickable in place in the editor, not extracted into a separate list.
 - The overlay must mirror the textarea's typography, padding (including scrollbar width), and scroll position to stay aligned.
